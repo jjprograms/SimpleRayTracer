@@ -53,25 +53,92 @@ class boundingbox
 		bool hit(vec3 origin, vec3 target)
 		{
 			//xbounds
-			if (origin[0] != target[0])
+			if (origin.x() != target.x())
 			{
-				//check for hit on plane at xlow
-				bool yrange = checkbound(intercept(origin[0], origin[1], target[0], target[1], xlow), y);
-				bool zrange = checkbound(intercept(origin[0], origin[2], target[0], target[2], xlow), z);
-				
-				if (yrange & zrange)
+				if ((target.x() - origin.x() > 0) != (origin.x() - xlow > 0))	//xlow must not be behind ray
 				{
-					return true;
+					//check for hit on plane at xlow
+					bool yrange = checkbound(intercept(origin.x(), origin.y(), target.x(), target.y(), xlow), y);
+					bool zrange = checkbound(intercept(origin.x(), origin.z(), target.x(), target.z(), xlow), z);
+
+					if (yrange && zrange)
+					{
+						return true;
+					}
+				}
+
+				if ((target.x() - origin.x() > 0) != (origin.x() - xhigh > 0))	//xhigh must not be behind ray
+				{
+					//check for hit on plane at xhigh
+					bool yrange = checkbound(intercept(origin.x(), origin.y(), target.x(), target.y(), xhigh), y);
+					bool zrange = checkbound(intercept(origin.x(), origin.z(), target.x(), target.z(), xhigh), z);
+
+					if (yrange && zrange)
+					{
+						return true;
+					}
 				}
 			}
 			
 			
 			//ybounds
-			
-			
+			if (origin.y() != target.y())
+			{
+				if ((target.y() - origin.y() > 0) != (origin.y() - ylow > 0))	//ylow must not be behind ray
+				{
+					//check for hit on plane at ylow
+					bool xrange = checkbound(intercept(origin.y(), origin.x(), target.y(), target.x(), ylow), x);
+					bool zrange = checkbound(intercept(origin.y(), origin.z(), target.y(), target.z(), ylow), z);
+
+					if (xrange && zrange)
+					{
+						return true;
+					}
+				}
+
+				if ((target.y() - origin.y() > 0) != (origin.y() - yhigh > 0))	//yhigh must not be behind ray
+				{
+					//check for hit on plane at yhigh
+					bool xrange = checkbound(intercept(origin.y(), origin.x(), target.y(), target.x(), yhigh), x);
+					bool zrange = checkbound(intercept(origin.y(), origin.z(), target.y(), target.z(), yhigh), z);
+
+					if (xrange && zrange)
+					{
+						return true;
+					}
+				}
+			}
+
 			
 			//zbounds
-			
+			if (origin.z() != target.z())
+			{
+				if ((target.z() - origin.z() > 0) != (origin.z() - zlow > 0))	//zlow must not be behind ray
+				{
+					//check for hit on plane at zlow
+					bool yrange = checkbound(intercept(origin.z(), origin.y(), target.z(), target.y(), zlow), y);
+					bool xrange = checkbound(intercept(origin.z(), origin.x(), target.z(), target.x(), zlow), x);
+
+					if (yrange && xrange)
+					{
+						return true;
+					}
+				}
+
+				if ((target.z() - origin.z() > 0) != (origin.z() - zhigh > 0))	//zhigh must not be behind ray
+				{
+					//check for hit on plane at zhigh
+					bool yrange = checkbound(intercept(origin.z(), origin.y(), target.z(), target.y(), zhigh), y);
+					bool xrange = checkbound(intercept(origin.z(), origin.x(), target.z(), target.x(), zhigh), x);
+
+					if (yrange && xrange)
+					{
+						return true;
+					}
+				}
+			}
+
+
 			return false;
 		}
 		
@@ -164,7 +231,7 @@ int main(int argc, char* argv[])
 	else
 	{
 		//run test file
-		int width = 200;
+		int width = 300;
 		int height = 200;
 		
 		char * img = new char [width*height*3];
@@ -173,7 +240,7 @@ int main(int argc, char* argv[])
 		
 		vec3 origin;
 		origin[0] = 0;
-		origin[1] = 0;
+		origin[1] = 2;
 		origin[2] = -5;
 		
 		vec3 target;
@@ -182,7 +249,7 @@ int main(int argc, char* argv[])
 		target[2] = 0;
 		
 		double xrange = PI/4;
-		double yrange = height/width*xrange;
+		double yrange = xrange*height/width;
 		
 		vec3 y;
 		y[0] = 0;
@@ -210,7 +277,11 @@ int main(int argc, char* argv[])
 				
 				if (box->hit(origin, ray))
 				{
-					r = g = b = 255;
+					//r = g = b = 255;
+					ray = unit_vector(ray);
+					r = (int)((ray.r() + 1) * 127.5);
+					g = (int)((ray.g() + 1) * 127.5);
+					b = (int)((ray.b() + 1) * 127.5);
 				}
 				
 				img[(width*j+i)*3] = r;
