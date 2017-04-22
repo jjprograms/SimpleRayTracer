@@ -101,10 +101,10 @@ void saveimage(const string& filepath, image imagedata)
 	
 }
 
-void saveimage(const string& filepath, char * binarydata, int width, int height)
+void saveimage(const char * filepath, char * binarydata, int width, int height)
 {
 	fstream file;
-	file.open(filepath.c_str(),ios::binary|ios::out|ios::ate|ios::trunc);
+	file.open(filepath,ios::binary|ios::out|ios::ate|ios::trunc);
 	
 	//create and fill dibhead
 	dibhead dbh;
