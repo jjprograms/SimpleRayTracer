@@ -214,6 +214,119 @@ class mat
 		}
 };
 
+struct hit
+{
+	bool wasRecorded;
+	vec3 point;
+	vec3 normal;
+};
+
+class material
+{
+	vec3 reflectance;
+
+};
+
+class ray
+{
+	public:
+		vec3 origin;
+		vec3 direction;
+
+		ray() 
+		{
+			origin = *(new vec3(0, 0, 0));
+			direction = *(new vec3(1, 0, 0));
+		}
+
+		ray(vec3 origin, vec3 direction)
+		{
+			this->direction = direction;
+			this->origin = origin;
+		}
+};
+
+class sphere
+{
+	public:
+		vec3 position;
+		double radius;
+		//material material;
+		sphere(vec3 position, double radius)
+		{
+			this->position = position;
+			this->radius = radius;
+		}
+
+		hit intersection(ray ray)
+		{
+			vec3 a = ray.origin - position;		//O-C
+			float b = dot(a, ray.direction);	//L.(O-C)
+			float descriminator = b*b - a.squared_length() + radius*radius;
+
+			hit hit1;
+
+			hit1.wasRecorded = false;
+			
+			if (descriminator <= 0)
+			{
+				return hit1;
+			}
+
+			/*if (descriminator == 0)
+			{
+				if (-b > 0)
+				{
+					hit.hit = true;
+					hit.point = ray.direction*(-b) + ray.origin;
+					hit.normal = unit_vector(hit.point - position);
+					return hit;
+				}
+				else
+				{
+					hit.hit = false;
+					return hit;
+				}
+			}*/
+
+			if (descriminator > 0)
+			{
+				float sqdes = sqrt(descriminator);
+				float d1 = -b + sqdes;
+				float d2 = -b - sqdes;
+
+				if (-b <= 0)
+				{
+					if (d1 > 0)
+					{
+						hit1.wasRecorded = true;
+						hit1.point = ray.direction*d1 + ray.origin;
+						hit1.normal = hit1.point - position;
+
+						return hit1;
+					}
+
+					return hit1;
+				}
+
+				if (d2 > 0)
+				{
+					hit1.wasRecorded = true;
+					hit1.point = ray.direction*d2 + ray.origin;
+					hit1.normal = hit1.point - position;
+
+					return hit1;
+				}
+
+				hit1.wasRecorded = true;
+				hit1.point = ray.direction*d1 + ray.origin;
+				hit1.normal = hit1.point - position;
+
+				return hit1;
+			}
+		}
+};
+
 vec3 rotatevec(vec3 vector, vec3 rotation, double angle)
 {
 	mat m = mat::fromaa(rotation, angle);
@@ -237,6 +350,8 @@ int main(int argc, char* argv[])
 		char * img = new char [width*height*3];
 		
 		boundingbox * box = new boundingbox(-1,1,-1,1,-1,1);
+
+		sphere sphere1 = *(new sphere(vec3(0, 0, 0), 1));
 		
 		vec3 origin;
 		origin[0] = 0;
@@ -261,7 +376,7 @@ int main(int argc, char* argv[])
 		
 		int i, j;
 		
-		vec3 ray;
+		vec3 camray;
 		
 		int r, g, b;
 		
@@ -269,19 +384,25 @@ int main(int argc, char* argv[])
 		{
 			for (i = 0; i < width; i++)
 			{
-				ray = target - origin;
-				ray = rotatevec(ray, camup, (2*xrange*i)/width-xrange);
-				ray = rotatevec(ray, camright, (2*yrange*j)/height-yrange);
+				camray = target - origin;
+				camray = rotatevec(camray, camup, (2*xrange*i)/width-xrange);
+				camray = rotatevec(camray, camright, (2*yrange*j)/height-yrange);
 				
 				r = g = b = 0;
 				
-				if (box->hit(origin, ray))
+				if (box->hit(origin, camray))
 				{
-					//r = g = b = 255;
-					ray = unit_vector(ray);
-					r = (int)((ray.r() + 1) * 127.5);
-					g = (int)((ray.g() + 1) * 127.5);
-					b = (int)((ray.b() + 1) * 127.5);
+					hit hit;
+					hit = sphere1.intersection(*(new ray(origin, unit_vector(camray))));
+
+					if (hit.wasRecorded)
+					{
+						//r = g = b = 255;
+						camray = unit_vector(camray);
+						r = (int)((camray.r() + 1) * 127.5);
+						g = (int)((camray.g() + 1) * 127.5);
+						b = (int)((camray.b() + 1) * 127.5);
+					}
 				}
 				
 				img[(width*j+i)*3] = r;
