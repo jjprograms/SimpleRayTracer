@@ -1,0 +1,1 @@
+g++ bmp.cpp boundingbox.cpp ray.cpp -o ray.exe

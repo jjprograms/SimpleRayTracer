@@ -261,3 +261,7 @@ __pycache__/
 
 # bitmap output
 *.bmp
+
+# exe output and object files
+*.exe
+*.o
