@@ -1,1 +1,1 @@
-g++ bmp.cpp boundingbox.cpp ray.cpp -o ray.exe
+g++ matrix.cpp bmp.cpp boundingbox.cpp ray.cpp -o ray.exe
