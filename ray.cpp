@@ -6,45 +6,6 @@
 #include "matrix.h"
 using namespace std;
 
-class mat
-{
-	public:
-		double m[9];
-		
-		vec3 mult(vec3 v)
-		{
-			vec3 out;
-			out.e[0] = v[0]*m[0] + v[1]*m[1] + v[2]*m[2];
-			out.e[1] = v[0]*m[3] + v[1]*m[4] + v[2]*m[5];
-			out.e[2] = v[0]*m[6] + v[1]*m[7] + v[2]*m[8];
-			return out;
-		}
-	
-		static mat fromaa(vec3 axis, double angle)
-		{
-			double c = cos(angle);
-			double s = sin(angle);
-			double p = 1 - c;
-			double x = axis[0];
-			double y = axis[1];
-			double z = axis[2];
-			
-			mat m;
-			m.m[0] = x*x*p + c;
-			m.m[1] = x*y*p - z*s;
-			m.m[2] = x*z*p + y*s;
-			
-			m.m[3] = y*x*c + z*s;
-			m.m[4] = y*y*p + c;
-			m.m[5] = y*z*p - x*s;
-			
-			m.m[6] = z*x*p - y*s;
-			m.m[7] = z*y*p + x*s;
-			m.m[8] = z*z*p + c;
-			return m;
-		}
-};
-
 struct hit
 {
 	bool wasRecorded;
@@ -157,12 +118,6 @@ class sphere
 			}
 		}
 };
-
-vec3 rotatevec(vec3 vector, vec3 rotation, double angle)
-{
-	mat m = mat::fromaa(rotation, angle);
-	return m.mult(vector);
-}
 
 int main(int argc, char* argv[])
 {
