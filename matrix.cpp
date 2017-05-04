@@ -10,7 +10,7 @@ matrix::matrix()
 	}
 }
 
-matrix operator*(matrix & m1, matrix & m2)
+matrix operator*(const matrix & m1, const matrix & m2)
 {
     matrix m3;
     int i;
@@ -29,7 +29,7 @@ matrix operator*(matrix & m1, matrix & m2)
     return m3;
 }
 
-vec3 operator*(matrix & m, vec3 & v)
+vec3 operator*(const matrix & m, const vec3 & v)
 {
 	vec3 out;
 	out.e[0] = v[0]*m.data[0]  + v[1]*m.data[1]  + v[2]*m.data[2]  + v[3]*m.data[3];

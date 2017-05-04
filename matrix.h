@@ -16,7 +16,7 @@ class matrix
 	
 };
 
-matrix operator*(matrix & m1, matrix & m2);
-vec3 operator*(matrix & m, vec3 & v);
+matrix operator*(const matrix & m1, const matrix & m2);
+vec3 operator*(const matrix & m, const vec3 & v);
 
 #endif

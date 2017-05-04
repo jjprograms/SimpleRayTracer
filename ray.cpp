@@ -3,6 +3,7 @@
 #include "vec3.h"
 #include "bmp.h"
 #include "boundingbox.h"
+#include "matrix.h"
 using namespace std;
 
 class mat
@@ -212,18 +213,20 @@ int main(int argc, char* argv[])
 		
 		for (j = 0; j < height; j++)
 		{
+			matrix tilt = matrix::rotate(camright, (2*yrange*j)/height-yrange);
+			
 			for (i = 0; i < width; i++)
 			{
 				camray = target - origin;
-				camray = rotatevec(camray, camup, (2*xrange*i)/width-xrange);
-				camray = rotatevec(camray, camright, (2*yrange*j)/height-yrange);
+				
+				matrix pan = matrix::rotate(camup, (2*xrange*i)/width-xrange);
 				
 				r = g = b = 0;
 				
 				if (box->hit(origin, camray))
 				{
 					hit hit;
-					hit = sphere1.intersection(*(new ray(origin, unit_vector(camray))));
+					hit = sphere1.intersection(*(new ray(origin, unit_vector(pan * tilt * camray))));
 
 					if (hit.wasRecorded)
 					{
