@@ -1,5 +1,7 @@
 #include <iostream>
 #include <math.h>
+#include <random>
+#include <vector>
 #include "vec3.h"
 #include "bmp.h"
 #include "boundingbox.h"
@@ -11,12 +13,23 @@ struct hit
 	bool wasRecorded;
 	vec3 point;
 	vec3 normal;
+	material * material;
 };
 
 class material
 {
-	vec3 reflectance;
+	public:
+		vec3 reflectance;
+		vec3 emission;
+};
 
+class diffuse_material: public material
+{
+	public:
+		ray bounce_ray(ray incoming_ray, vec3 normal)
+		{
+			ray out;
+		}
 };
 
 class ray
@@ -43,7 +56,7 @@ class sphere
 	public:
 		vec3 position;
 		double radius;
-		//material material;
+		material material;
 		sphere(vec3 position, double radius)
 		{
 			this->position = position;
@@ -119,6 +132,13 @@ class sphere
 		}
 };
 
+double get_random()
+{
+	static std::default_random_engine e;
+    static std::uniform_real_distribution<> dis(0, 1); // rage 0 - 1
+    return dis(e);
+}
+
 int main(int argc, char* argv[])
 {
 	const double PI = 3.14159265358979323846;
@@ -160,11 +180,17 @@ int main(int argc, char* argv[])
 		vec3 camright = unit_vector(cross((target - origin), y));
 		vec3 camup = unit_vector(cross((target - origin), camright));
 		
-		int i, j;
+		int i, j, k, l;
 		
 		vec3 camray;
 		
 		int r, g, b;
+		
+		int samples_per_pixel, max_depth;
+		samples_per_pixel = 25;
+		max_depth = 5;
+		
+		vec3 collected_light;
 		
 		for (j = 0; j < height; j++)
 		{
@@ -178,7 +204,7 @@ int main(int argc, char* argv[])
 				
 				r = g = b = 0;
 				
-				if (box->hit(origin, camray))
+				/*if (box->hit(origin, camray))
 				{
 					hit hit;
 					hit = sphere1.intersection(*(new ray(origin, unit_vector(pan * tilt * camray))));
@@ -191,7 +217,30 @@ int main(int argc, char* argv[])
 						g = (int)((camray.g() + 1) * 127.5);
 						b = (int)((camray.b() + 1) * 127.5);
 					}
+				}*/
+				
+				collected_light.r = 0;
+				collected_light.g = 0;
+				collected_light.b = 0;
+				
+				//for k = 0 k < samples_per_pixel
+				for (k = 0; k < samples_per_pixel; k++)
+				{
+					vector<hit> hit_list;
+					//for l = 0 l < max_depth
+					
+					//test ray against all objects to find closest intersection
+						//test bounding box
+						//test object
+					
+					//record intersection details. emission, reflectivity, normal
+					
+					//generate new ray
+					
+				//add sample to total
 				}
+				
+				//if we are done map total to rgb
 				
 				img[(width*j+i)*3] = r;
 				img[(width*j+i)*3+1] = g;
@@ -204,3 +253,13 @@ int main(int argc, char* argv[])
 	
 	return 0;
 }
+
+
+//create each object set it's properties and add it to a list
+
+//create rays acording to camera parameters and settings like samples per pixel
+
+//for each ray test each object to find closest hit if any
+
+//if we hit something keep tracing rays until we reach max depth
+
