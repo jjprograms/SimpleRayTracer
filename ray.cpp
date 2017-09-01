@@ -8,29 +8,77 @@
 #include "matrix.h"
 using namespace std;
 
+const double PI = 3.14159265358979323846;
+
 struct hit
 {
 	bool wasRecorded;
 	vec3 point;
 	vec3 normal;
-	material * material;
+	//material * material;
 };
 
 class material
 {
 	public:
-		vec3 reflectance;
+		vec3 diffuse;
+		vec3 specular;
 		vec3 emission;
 };
 
-class diffuse_material: public material
+/*class diffuse_material: public material
 {
 	public:
 		ray bounce_ray(ray incoming_ray, vec3 normal)
 		{
 			ray out;
 		}
-};
+};*/
+
+double cooktorr(vec3 V, vec3 L, vec3 N, double Ri1, double Ri2, double roughness)
+{
+	vec3 H = unit_vector((V+L)/2);
+	
+	// D:
+	
+	/*double a = acos(dot(N, H));
+	
+	double cos2a = cos(a) * cos(a);*/
+	
+	double NdotH = dot(N, H);
+	
+	double cos2a = NdotH * NdotH;
+	
+	double m2 = roughness * roughness;
+	
+	double D = exp( (1 - cos2a) / (cos2a * m2) ) / ( PI * m2 * cos2a * cos2a );
+	
+	// F:
+	
+	double cosiangle = dot(V, N);
+	double siniangle = sqrt(1 - cosiangle * cosiangle);
+	
+	double radical = sqrt( 1 - pow( siniangle * Ri1 / Ri2, 2) );
+	
+	double Rs = pow( (Ri1*cosiangle - Ri2*radical) / (Ri1*cosiangle + Ri2*radical), 2 );
+	double Rp = pow( (Ri1*radical - Ri2*cosiangle) / (Ri1*radical + Ri2*cosiangle), 2 );
+	
+	double F = (Rs + Rp) / 2;
+	
+	//G:
+	
+	double VdotH = dot(V, H);
+	
+	double VdotN = dot(V, N);
+	
+	double LdotN = dot(L, N);
+	
+	double G = fmin(1, 2 * NdotH * fmin(VdotN, LdotN) / VdotH);
+	
+	//Cook-Torr
+	
+	return D * F * G / (4 * VdotN * LdotN);
+}
 
 class ray
 {
@@ -135,14 +183,12 @@ class sphere
 double get_random()
 {
 	static std::default_random_engine e;
-    static std::uniform_real_distribution<> dis(0, 1); // rage 0 - 1
+    static std::uniform_real_distribution<double> dis(0, 1); // range 0 - 1
     return dis(e);
 }
 
 int main(int argc, char* argv[])
 {
-	const double PI = 3.14159265358979323846;
-
 	if(argc > 1)
 	{
 		//attempt to parse input file
@@ -204,7 +250,7 @@ int main(int argc, char* argv[])
 				
 				r = g = b = 0;
 				
-				/*if (box->hit(origin, camray))
+				if (box->hit(origin, camray))
 				{
 					hit hit;
 					hit = sphere1.intersection(*(new ray(origin, unit_vector(pan * tilt * camray))));
@@ -217,16 +263,16 @@ int main(int argc, char* argv[])
 						g = (int)((camray.g() + 1) * 127.5);
 						b = (int)((camray.b() + 1) * 127.5);
 					}
-				}*/
+				}
 				
-				collected_light.r = 0;
-				collected_light.g = 0;
-				collected_light.b = 0;
+				collected_light.e[0] = 0;
+				collected_light.e[1] = 0;
+				collected_light.e[2] = 0;
 				
 				//for k = 0 k < samples_per_pixel
-				for (k = 0; k < samples_per_pixel; k++)
+				/*for (k = 0; k < samples_per_pixel; k++)
 				{
-					vector<hit> hit_list;
+					vector<hit> hit_list;*/
 					//for l = 0 l < max_depth
 					
 					//test ray against all objects to find closest intersection
@@ -238,7 +284,7 @@ int main(int argc, char* argv[])
 					//generate new ray
 					
 				//add sample to total
-				}
+				/*}*/
 				
 				//if we are done map total to rgb
 				
