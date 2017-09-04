@@ -18,6 +18,21 @@ struct hit
 	//material * material;
 };
 
+hit closesthit(vec3 origin, hit hit1, hit hit2)
+{
+	double d1 = (hit1.point - origin).length();
+	double d2 = (hit2.point - origin).length();
+
+	if (d2 < d1)
+	{
+		return hit2;
+	}
+	else
+	{
+		return hit1;
+	}
+}
+
 class material
 {
 	public:
@@ -102,6 +117,7 @@ class ray
 class sphere
 {
 	public:
+		boundingbox bbox = boundingbox(-1,1,-1,1,-1,1);
 		vec3 position;
 		double radius;
 		material material;
@@ -109,13 +125,22 @@ class sphere
 		{
 			this->position = position;
 			this->radius = radius;
+
+			bbox.xhigh = position.x() + radius;
+			bbox.xlow = position.x() - radius;
+
+			bbox.yhigh = position.y() + radius;
+			bbox.ylow = position.y() - radius;
+
+			bbox.zhigh = position.z() + radius;
+			bbox.zlow = position.z() - radius;
 		}
 
 		hit intersection(ray ray)
 		{
 			vec3 a = ray.origin - position;		//O-C
-			float b = dot(a, ray.direction);	//L.(O-C)
-			float descriminator = b*b - a.squared_length() + radius*radius;
+			double b = dot(a, ray.direction);	//L.(O-C)
+			double descriminator = b*b - a.squared_length() + radius*radius;
 
 			hit hit1;
 
@@ -144,9 +169,9 @@ class sphere
 
 			if (descriminator > 0)
 			{
-				float sqdes = sqrt(descriminator);
-				float d1 = -b + sqdes;
-				float d2 = -b - sqdes;
+				double sqdes = sqrt(descriminator);
+				double d1 = -b + sqdes;
+				double d2 = -b - sqdes;
 
 				if (-b <= 0)
 				{
@@ -201,27 +226,21 @@ int main(int argc, char* argv[])
 		
 		char * img = new char [width*height*3];
 		
-		boundingbox * box = new boundingbox(-1,1,-1,1,-1,1);
+		vector<sphere> scene;
 
-		sphere sphere1 = *(new sphere(vec3(0, 0, 0), 1));
+		scene.push_back(sphere(vec3(-4, 0, 0), .5));
+		scene.push_back(sphere(vec3(-2, 0, 0), .5));
+		scene.push_back(sphere(vec3(0, 0, .5), .5));
+		scene.push_back(sphere(vec3(2, 0, 0), .5));
+
+		vec3 origin = vec3(-5,0,-1.6);
 		
-		vec3 origin;
-		origin[0] = 0;
-		origin[1] = 2;
-		origin[2] = -5;
-		
-		vec3 target;
-		target[0] = 0;
-		target[1] = 0;
-		target[2] = 0;
+		vec3 target = vec3(0,0,0);
 		
 		double xrange = PI/4;
 		double yrange = xrange*height/width;
 		
-		vec3 y;
-		y[0] = 0;
-		y[1] = 1;
-		y[2] = 0;
+		vec3 y = vec3(0,1,0);
 		
 		vec3 camright = unit_vector(cross((target - origin), y));
 		vec3 camup = unit_vector(cross((target - origin), camright));
@@ -233,66 +252,106 @@ int main(int argc, char* argv[])
 		int r, g, b;
 		
 		int samples_per_pixel, max_depth;
-		samples_per_pixel = 25;
+		samples_per_pixel = 1;// 25;
 		max_depth = 5;
 		
 		vec3 collected_light;
-		
-		for (j = 0; j < height; j++)
-		{
-			matrix tilt = matrix::rotate(camright, (2*yrange*j)/height-yrange);
-			
-			for (i = 0; i < width; i++)
-			{
-				camray = target - origin;
-				
-				matrix pan = matrix::rotate(camup, (2*xrange*i)/width-xrange);
-				
-				r = g = b = 0;
-				
-				if (box->hit(origin, camray))
-				{
-					hit hit;
-					hit = sphere1.intersection(*(new ray(origin, unit_vector(pan * tilt * camray))));
 
-					if (hit.wasRecorded)
-					{
-						//r = g = b = 255;
-						camray = unit_vector(camray);
-						r = (int)((camray.r() + 1) * 127.5);
-						g = (int)((camray.g() + 1) * 127.5);
-						b = (int)((camray.b() + 1) * 127.5);
-					}
-				}
-				
-				collected_light.e[0] = 0;
-				collected_light.e[1] = 0;
-				collected_light.e[2] = 0;
-				
-				//for k = 0 k < samples_per_pixel
-				/*for (k = 0; k < samples_per_pixel; k++)
+		for (int k = 0; k < samples_per_pixel; k++)
+		{
+			for (j = 0; j < height; j++)
+			{
+				matrix tilt = matrix::rotate(camright, (2 * yrange*j) / height - yrange);
+
+				for (i = 0; i < width; i++)
 				{
-					vector<hit> hit_list;*/
-					//for l = 0 l < max_depth
-					
-					//test ray against all objects to find closest intersection
+					camray = target - origin;
+
+					matrix pan = matrix::rotate(camup, (2 * xrange*i) / width - xrange);
+
+					r = g = b = 0;
+
+					vector<hit> hitlist;
+
+					for (int m = 0; m < scene.size(); m++)
+					{
+						sphere sceneitem = scene[m];
+						if (sceneitem.bbox.hit(origin, origin + (pan * tilt * camray)))
+						{
+							hit hit;
+							hit = sceneitem.intersection(ray(origin, unit_vector(pan * tilt * camray)));
+
+							if (hit.wasRecorded)
+							{
+								hitlist.push_back(hit);
+							}
+						}
+					}
+
+					int numhits = hitlist.size();
+
+					switch (hitlist.size())
+					{
+						case 0:
+							break;
+
+						case 1:
+							/*camray = unit_vector(camray);
+							r = (int)((camray.r() + 1) * 127.5);
+							g = (int)((camray.g() + 1) * 127.5);
+							b = (int)((camray.b() + 1) * 127.5);*/
+							r = 255;
+							g = 0;
+							b = 0;
+							break;
+
+						default:
+							hit besthit = hitlist[0];
+							for (int i = 1; i < hitlist.size(); i++)
+							{
+								besthit = closesthit(origin, besthit, hitlist[i]);
+							}
+							/*camray = unit_vector(camray);
+							r = (int)((camray.r() + 1) * 127.5);
+							g = (int)((camray.g() + 1) * 127.5);
+							b = (int)((camray.b() + 1) * 127.5);*/
+							r = 255;
+							g = 255;
+							b = 0;
+							break;
+					}
+
+					collected_light.e[0] = 0;
+					collected_light.e[1] = 0;
+					collected_light.e[2] = 0;
+
+					//for k = 0 k < samples_per_pixel
+					/*for (k = 0; k < samples_per_pixel; k++)
+					{
+						vector<hit> hit_list;*/
+						//for l = 0 l < max_depth
+
+						//test ray against all objects to find closest intersection
 						//test bounding box
 						//test object
-					
-					//record intersection details. emission, reflectivity, normal
-					
-					//generate new ray
-					
-				//add sample to total
-				/*}*/
-				
-				//if we are done map total to rgb
-				
-				img[(width*j+i)*3] = r;
-				img[(width*j+i)*3+1] = g;
-				img[(width*j+i)*3+2] = b;
+
+						//record intersection details. emission, reflectivity, normal
+
+						//generate new ray
+
+						//add sample to total
+					/*}*/
+
+					//if we are done map total to rgb
+
+					img[(width*j + i) * 3] = b;
+					img[(width*j + i) * 3 + 1] = g;
+					img[(width*j + i) * 3 + 2] = r;
+				}
 			}
 		}
+		
+		
 		
 		saveimage("test.bmp", img, width, height);
 	}
