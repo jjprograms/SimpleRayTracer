@@ -10,6 +10,8 @@ using namespace std;
 
 const double PI = 3.14159265358979323846;
 
+class sphere;
+
 struct hit
 {
     bool wasRecorded;
@@ -213,7 +215,19 @@ double get_random()
     return dis(e);
 }
 
-vec3 trace(vector<sphere> scene, ray ray, int maxbounce)
+vec3 random_unit_vector()
+{
+	static std::default_random_engine e;
+	static std::normal_distribution<double> generate(0.0,1.0);
+	
+	double x = generate(e);
+	double y = generate(e);
+	double z = generate(e);
+	
+	return unit_vector(vec3(x, y, z));
+}
+
+vec3 trace(const vector<sphere>& scene, ray camera_ray, int maxbounce)
 {
     if (maxbounce > 0)
     {
@@ -222,10 +236,10 @@ vec3 trace(vector<sphere> scene, ray ray, int maxbounce)
 		for (int m = 0; m < scene.size(); m++)
 		{
 			sphere sceneitem = scene[m];
-			if (sceneitem.bbox.hit(origin, origin + (pan * tilt * camray)))
+			if (sceneitem.bbox.hit(camera_ray.origin, camera_ray.origin + camera_ray.direction))
 			{
 				hit hit;
-				hit = sceneitem.intersection(ray(origin, unit_vector(pan * tilt * camray)));
+				hit = sceneitem.intersection(camera_ray);
 
 				if (hit.wasRecorded)
 				{
@@ -252,14 +266,21 @@ vec3 trace(vector<sphere> scene, ray ray, int maxbounce)
 				besthit = hitlist[0];
 				for (int i = 1; i < hitlist.size(); i++)
 				{
-					besthit = closesthit(origin, besthit, hitlist[i]);
+					besthit = closesthit(camera_ray.origin, besthit, hitlist[i]);
 				}
 				break;
 		}
 		
-		ray newray
+		vec3 random_direction = random_unit_vector();
 		
-		return besthit->object.emission + 
+		if (dot(besthit.normal, random_direction) < 0)
+		{
+			random_direction = -random_direction;
+		}
+		
+		ray newray = ray(besthit.point, random_direction);
+		
+		return besthit.object->material.emission + (besthit.object->material.diffuse * dot(besthit.normal, newray.direction) * trace(scene, newray, maxbounce - 1));
     }
 }
 
@@ -276,6 +297,10 @@ int main(int argc, char* argv[])
         int height = 200;
         
         char * img = new char [width*height*3];
+		
+		vec3 * prescale_render   = new vec3 [width*height];
+		//double * green_channel = new double [width*height];
+		//double * blue_channel  = new double [width*height];
         
         vector<sphere> scene;
 
@@ -307,14 +332,12 @@ int main(int argc, char* argv[])
         
         vec3 camray;
         
-        int r, g, b;
+        //int r, g, b;
         
         int samples_per_pixel, max_depth;
         samples_per_pixel = 1;// 25;
         max_depth = 5;
         
-        vec3 collected_light;
-
         for (int k = 0; k < samples_per_pixel; k++)
         {
             for (j = 0; j < height; j++)
@@ -327,12 +350,10 @@ int main(int argc, char* argv[])
 
                     matrix pan = matrix::rotate(camup, (2 * xrange*i) / width - xrange);
 
-                    r = g = b = 0;
+                    //r = g = b = 0;
+					
+					prescale_render[width*j + i] += trace(scene, ray(origin, unit_vector(pan * tilt * camray)), max_depth);
 
-
-                    collected_light.e[0] = 0;
-                    collected_light.e[1] = 0;
-                    collected_light.e[2] = 0;
 
                     //for k = 0 k < samples_per_pixel
                     /*for (k = 0; k < samples_per_pixel; k++)
@@ -353,14 +374,20 @@ int main(int argc, char* argv[])
 
                     //if we are done map total to rgb
 
-                    img[(width*j + i) * 3] = b;
-                    img[(width*j + i) * 3 + 1] = g;
-                    img[(width*j + i) * 3 + 2] = r;
                 }
             }
         }
         
-        
+		for (j = 0; j < height; j++)
+		{
+			for (i = 0; i < width; i++)
+			{
+				img[(width*j + i) * 3]     = prescale_render[width*j + i].b() * 255 / samples_per_pixel;
+				img[(width*j + i) * 3 + 1] = prescale_render[width*j + i].g() * 255 / samples_per_pixel;
+				img[(width*j + i) * 3 + 2] = prescale_render[width*j + i].r() * 255 / samples_per_pixel;
+			}
+		}
+
         
         saveimage("test.bmp", img, width, height);
     }
