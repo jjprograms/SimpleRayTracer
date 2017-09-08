@@ -106,8 +106,8 @@ class ray
 
         ray() 
         {
-            origin = *(new vec3(0, 0, 0));
-            direction = *(new vec3(1, 0, 0));
+            origin = vec3(0, 0, 0);
+            direction = vec3(1, 0, 0);
         }
 
         ray(vec3 origin, vec3 direction)
@@ -146,6 +146,8 @@ class sphere
             double descriminator = b*b - a.squared_length() + radius*radius;
 
             hit hit1;
+
+			hit1.object = this;
 
             hit1.wasRecorded = false;
             
@@ -279,8 +281,11 @@ vec3 trace(const vector<sphere>& scene, ray camera_ray, int maxbounce)
 		}
 		
 		ray newray = ray(besthit.point, random_direction);
-		
-		return besthit.object->material.emission + (besthit.object->material.diffuse * dot(besthit.normal, newray.direction) * trace(scene, newray, maxbounce - 1));
+
+		vec3 emission = besthit.object->material.emission;
+		vec3 diffuse = besthit.object->material.diffuse;
+
+		return emission;// +(diffuse * trace(scene, newray, maxbounce - 1) * dot(besthit.normal, newray.direction));
     }
 }
 
@@ -352,6 +357,7 @@ int main(int argc, char* argv[])
 
                     //r = g = b = 0;
 					
+					prescale_render[width*j + i] = vec3(0, 0, 0);//vec3(255, 255, 255);
 					prescale_render[width*j + i] += trace(scene, ray(origin, unit_vector(pan * tilt * camray)), max_depth);
 
 
