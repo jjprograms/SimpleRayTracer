@@ -257,7 +257,7 @@ vec3 trace(const vector<sphere>& scene, ray camera_ray, int maxbounce)
 		switch (hitlist.size())
 		{
 			case 0:
-				return vec3(0,0,0);
+				return vec3(.5,.5,.5);
 				break;
 
 			case 1:
@@ -285,8 +285,10 @@ vec3 trace(const vector<sphere>& scene, ray camera_ray, int maxbounce)
 		vec3 emission = besthit.object->material.emission;
 		vec3 diffuse = besthit.object->material.diffuse;
 
-		return emission;// +(diffuse * trace(scene, newray, maxbounce - 1) * dot(besthit.normal, newray.direction));
+		return emission + trace(scene, newray, maxbounce - 1);// + (diffuse * trace(scene, newray, maxbounce - 1) * dot(besthit.normal, newray.direction));
     }
+	
+	return vec3(0,0,0);
 }
 
 int main(int argc, char* argv[])
@@ -317,9 +319,10 @@ int main(int argc, char* argv[])
 		scene[0].material.emission = vec3(1,1,1);
 		scene[0].material.diffuse = vec3(1,1,1);
 
-		scene[1].material.diffuse = vec3(1,0,1);
-		scene[2].material.diffuse = vec3(0,1,1);
-		scene[3].material.diffuse = vec3(1,1,0);
+		scene[1].material.diffuse = vec3(1,1,1);
+		scene[2].material.diffuse = vec3(1,1,1);
+		//scene[2].material.emission = vec3(1,1,1);
+		scene[3].material.diffuse = vec3(1,1,1);
 
         vec3 origin = vec3(-5,0,-1.6);
         
@@ -340,7 +343,7 @@ int main(int argc, char* argv[])
         //int r, g, b;
         
         int samples_per_pixel, max_depth;
-        samples_per_pixel = 1;// 25;
+        samples_per_pixel = 10;// 25;
         max_depth = 5;
         
         for (int k = 0; k < samples_per_pixel; k++)
@@ -357,7 +360,7 @@ int main(int argc, char* argv[])
 
                     //r = g = b = 0;
 					
-					prescale_render[width*j + i] = vec3(0, 0, 0);//vec3(255, 255, 255);
+					//prescale_render[width*j + i] = vec3(1, 1, 1);//vec3(255, 255, 255);
 					prescale_render[width*j + i] += trace(scene, ray(origin, unit_vector(pan * tilt * camray)), max_depth);
 
 
@@ -380,17 +383,25 @@ int main(int argc, char* argv[])
 
                     //if we are done map total to rgb
 
+					/*img[(width*j + i) * 3]     = 255;//prescale_render[width*j + i].b() * 255 / samples_per_pixel;
+					img[(width*j + i) * 3 + 1] = 200;//prescale_render[width*j + i].g() * 255 / samples_per_pixel;
+					img[(width*j + i) * 3 + 2] = 150;//prescale_render[width*j + i].r() * 255 / samples_per_pixel;
+*/
                 }
             }
         }
+		
+		int p,q;
         
-		for (j = 0; j < height; j++)
+		for (q = 0; q < height; q++)
 		{
-			for (i = 0; i < width; i++)
+			for (p = 0; p < width; p++)
 			{
-				img[(width*j + i) * 3]     = prescale_render[width*j + i].b() * 255 / samples_per_pixel;
-				img[(width*j + i) * 3 + 1] = prescale_render[width*j + i].g() * 255 / samples_per_pixel;
-				img[(width*j + i) * 3 + 2] = prescale_render[width*j + i].r() * 255 / samples_per_pixel;
+				vec3 pixel = prescale_render[width*q + p] * 255.0 / samples_per_pixel;
+				
+				img[(width*q + p) * 3]     = (char)pixel.b();
+				img[(width*q + p) * 3 + 1] = (char)pixel.g();
+				img[(width*q + p) * 3 + 2] = (char)pixel.r();
 			}
 		}
 
