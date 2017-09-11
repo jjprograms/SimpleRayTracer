@@ -17,8 +17,8 @@ struct hit
     bool wasRecorded;
     vec3 point;
     vec3 normal;
-	sphere * object;
-    //material * material;
+	//sphere * object;
+	int sphereindex;
 };
 
 hit closesthit(vec3 origin, hit hit1, hit hit2)
@@ -42,6 +42,13 @@ class material
         vec3 diffuse;
         vec3 specular;
         vec3 emission;
+
+		material()
+		{
+			diffuse  = vec3(0, 0, 0);
+			specular = vec3(0, 0, 0);
+			emission = vec3(0, 0, 0);
+		}
 };
 
 /*class diffuse_material: public material
@@ -139,6 +146,12 @@ class sphere
             bbox.zlow = position.z() - radius;
         }
 
+		sphere()
+		{
+			this->position = vec3(-500, -500, -500);
+			this->radius = 70;
+		}
+
         hit intersection(ray ray)
         {
             vec3 a = ray.origin - position;     //O-C
@@ -147,15 +160,10 @@ class sphere
 
             hit hit1;
 
-			hit1.object = this;
+			//hit1.object = this;
 
             hit1.wasRecorded = false;
             
-            if (descriminator <= 0)
-            {
-                return hit1;
-            }
-
             /*if (descriminator == 0)
             {
                 if (-b > 0)
@@ -172,7 +180,12 @@ class sphere
                 }
             }*/
 
-            if (descriminator > 0)
+            if (descriminator <= 0)
+            {
+                return hit1;
+            }
+
+            else//if (descriminator > 0)
             {
                 double sqdes = sqrt(descriminator);
                 double d1 = -b + sqdes;
@@ -220,7 +233,7 @@ double get_random()
 vec3 random_unit_vector()
 {
 	static std::default_random_engine e;
-	static std::normal_distribution<double> generate(0.0,1.0);
+	static std::normal_distribution<double> generate(0.0, 1.0);
 	
 	double x = generate(e);
 	double y = generate(e);
@@ -235,29 +248,33 @@ vec3 trace(const vector<sphere>& scene, ray camera_ray, int maxbounce)
     {
 		vector<hit> hitlist;
 
+		sphere sceneitem;
+
+		hit currhit;
+
 		for (int m = 0; m < scene.size(); m++)
 		{
-			sphere sceneitem = scene[m];
+			sceneitem = scene[m];
 			if (sceneitem.bbox.hit(camera_ray.origin, camera_ray.origin + camera_ray.direction))
 			{
-				hit hit;
-				hit = sceneitem.intersection(camera_ray);
+				int numhits = hitlist.size();
+		
+				currhit = sceneitem.intersection(camera_ray);
 
-				if (hit.wasRecorded)
+				if (currhit.wasRecorded)
 				{
-					hitlist.push_back(hit);
+					currhit.sphereindex = m;
+					hitlist.push_back(currhit);
 				}
 			}
 		}
 
-		int numhits = hitlist.size();
-		
 		hit besthit;
 
 		switch (hitlist.size())
 		{
 			case 0:
-				return vec3(.5,.5,.5);
+				return vec3(.5, .5, .5);
 				break;
 
 			case 1:
@@ -282,13 +299,26 @@ vec3 trace(const vector<sphere>& scene, ray camera_ray, int maxbounce)
 		
 		ray newray = ray(besthit.point, random_direction);
 
-		vec3 emission = besthit.object->material.emission;
-		vec3 diffuse = besthit.object->material.diffuse;
+		vec3 emission = scene[besthit.sphereindex].material.emission;
+		vec3 diffuse  = scene[besthit.sphereindex].material.diffuse;
 
-		return emission + trace(scene, newray, maxbounce - 1);// + (diffuse * trace(scene, newray, maxbounce - 1) * dot(besthit.normal, newray.direction));
+		return emission + (diffuse * trace(scene, newray, maxbounce - 1) * dot(besthit.normal, newray.direction));//+ trace(scene, newray, maxbounce - 1);// 
     }
 	
-	return vec3(0,0,0);
+	return vec3(0, 0, 0);
+}
+
+vec3 clamp(double lowlimit, double highlimit, vec3 vect)
+{
+	vect[0] = fmax(vect[0], lowlimit);
+	vect[1] = fmax(vect[1], lowlimit);
+	vect[2] = fmax(vect[2], lowlimit);
+
+	vect[0] = fmin(vect[0], highlimit);
+	vect[1] = fmin(vect[1], highlimit);
+	vect[2] = fmin(vect[2], highlimit);
+
+	return vect;
 }
 
 int main(int argc, char* argv[])
@@ -306,24 +336,36 @@ int main(int argc, char* argv[])
         char * img = new char [width*height*3];
 		
 		vec3 * prescale_render   = new vec3 [width*height];
-		//double * green_channel = new double [width*height];
-		//double * blue_channel  = new double [width*height];
+
+		int a, b;
+		for (b = 0; b < height; b++)
+		{
+			for (a = 0; a < width; a++)
+			{
+				prescale_render[width*b + a] = vec3(0, 0, 0);
+			}
+		}
         
         vector<sphere> scene;
 
-        scene.push_back(sphere(vec3(-4, 0, 0), .5));
-        scene.push_back(sphere(vec3(-2, 0, 0), .5));
-        scene.push_back(sphere(vec3(0, 0, .5), .5));
-        scene.push_back(sphere(vec3(2, 0, 0), .5));
+		sphere s1 = sphere(vec3(-4, 0, 0), .5);
+		sphere s2 = sphere(vec3(-2, 0, 0), .5);
+		sphere s3 = sphere(vec3(0, 0, .5), .5);
+		sphere s4 = sphere(vec3(2, 0, 0), .5);
+
+		s1.material.emission = vec3(1,0,0);
+		s1.material.diffuse = vec3(1,1,1);
+
+		s2.material.diffuse = vec3(1,1,1);
+		s3.material.diffuse = vec3(1,1,1);
+		s4.material.emission = vec3(1,1,1);
+		s4.material.diffuse = vec3(1,1,1);
+
+        scene.push_back(s1);
+        scene.push_back(s2);
+        scene.push_back(s3);
+        scene.push_back(s4);
 		
-		scene[0].material.emission = vec3(1,1,1);
-		scene[0].material.diffuse = vec3(1,1,1);
-
-		scene[1].material.diffuse = vec3(1,1,1);
-		scene[2].material.diffuse = vec3(1,1,1);
-		//scene[2].material.emission = vec3(1,1,1);
-		scene[3].material.diffuse = vec3(1,1,1);
-
         vec3 origin = vec3(-5,0,-1.6);
         
         vec3 target = vec3(0,0,0);
@@ -340,9 +382,7 @@ int main(int argc, char* argv[])
         
         vec3 camray;
         
-        //int r, g, b;
-        
-        int samples_per_pixel, max_depth;
+		int samples_per_pixel, max_depth;
         samples_per_pixel = 10;// 25;
         max_depth = 5;
         
@@ -358,35 +398,8 @@ int main(int argc, char* argv[])
 
                     matrix pan = matrix::rotate(camup, (2 * xrange*i) / width - xrange);
 
-                    //r = g = b = 0;
-					
-					//prescale_render[width*j + i] = vec3(1, 1, 1);//vec3(255, 255, 255);
 					prescale_render[width*j + i] += trace(scene, ray(origin, unit_vector(pan * tilt * camray)), max_depth);
 
-
-                    //for k = 0 k < samples_per_pixel
-                    /*for (k = 0; k < samples_per_pixel; k++)
-                    {
-                        vector<hit> hit_list;*/
-                        //for l = 0 l < max_depth
-
-                        //test ray against all objects to find closest intersection
-                        //test bounding box
-                        //test object
-
-                        //record intersection details. emission, reflectivity, normal
-
-                        //generate new ray
-
-                        //add sample to total
-                    /*}*/
-
-                    //if we are done map total to rgb
-
-					/*img[(width*j + i) * 3]     = 255;//prescale_render[width*j + i].b() * 255 / samples_per_pixel;
-					img[(width*j + i) * 3 + 1] = 200;//prescale_render[width*j + i].g() * 255 / samples_per_pixel;
-					img[(width*j + i) * 3 + 2] = 150;//prescale_render[width*j + i].r() * 255 / samples_per_pixel;
-*/
                 }
             }
         }
@@ -398,6 +411,8 @@ int main(int argc, char* argv[])
 			for (p = 0; p < width; p++)
 			{
 				vec3 pixel = prescale_render[width*q + p] * 255.0 / samples_per_pixel;
+
+				vec3 cpixel = clamp(0, 1, pixel);
 				
 				img[(width*q + p) * 3]     = (char)pixel.b();
 				img[(width*q + p) * 3 + 1] = (char)pixel.g();
@@ -405,7 +420,6 @@ int main(int argc, char* argv[])
 			}
 		}
 
-        
         saveimage("test.bmp", img, width, height);
     }
     
