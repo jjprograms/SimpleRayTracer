@@ -297,7 +297,7 @@ vec3 trace(const vector<sphere>& scene, ray camera_ray, int maxbounce)
 			random_direction = -random_direction;
 		}
 		
-		ray newray = ray(besthit.point, random_direction);
+		ray newray = ray(besthit.point + (besthit.normal * .001), random_direction);
 
 		vec3 emission = scene[besthit.sphereindex].material.emission;
 		vec3 diffuse  = scene[besthit.sphereindex].material.diffuse;
@@ -353,12 +353,12 @@ int main(int argc, char* argv[])
 		sphere s3 = sphere(vec3(0, 0, .5), .5);
 		sphere s4 = sphere(vec3(2, 0, 0), .5);
 
-		s1.material.emission = vec3(1,0,0);
+		s1.material.emission = vec3(1,0,0)*10;
 		s1.material.diffuse = vec3(1,1,1);
 
 		s2.material.diffuse = vec3(1,1,1);
 		s3.material.diffuse = vec3(1,1,1);
-		s4.material.emission = vec3(1,1,1);
+		s4.material.emission = vec3(1,1,1)*10;
 		s4.material.diffuse = vec3(1,1,1);
 
         scene.push_back(s1);
@@ -366,9 +366,9 @@ int main(int argc, char* argv[])
         scene.push_back(s3);
         scene.push_back(s4);
 		
-        vec3 origin = vec3(-5,0,-1.6);
+		vec3 origin = vec3(-5, 0, -1.6);
         
-        vec3 target = vec3(0,0,0);
+		vec3 target = vec3(0, 0, 0);
         
         double xrange = PI/4;
         double yrange = xrange*height/width;
@@ -383,8 +383,8 @@ int main(int argc, char* argv[])
         vec3 camray;
         
 		int samples_per_pixel, max_depth;
-        samples_per_pixel = 10;// 25;
-        max_depth = 5;
+        samples_per_pixel = 100;// 25;
+        max_depth = 2;
         
         for (int k = 0; k < samples_per_pixel; k++)
         {
@@ -410,13 +410,13 @@ int main(int argc, char* argv[])
 		{
 			for (p = 0; p < width; p++)
 			{
-				vec3 pixel = prescale_render[width*q + p] * 255.0 / samples_per_pixel;
+				vec3 pixel = prescale_render[width*q + p] / samples_per_pixel;
 
-				vec3 cpixel = clamp(0, 1, pixel);
+				vec3 cpixel = clamp(0, 1, pixel) * 255;
 				
-				img[(width*q + p) * 3]     = (char)pixel.b();
-				img[(width*q + p) * 3 + 1] = (char)pixel.g();
-				img[(width*q + p) * 3 + 2] = (char)pixel.r();
+				img[(width*q + p) * 3]     = (char)cpixel.b();
+				img[(width*q + p) * 3 + 1] = (char)cpixel.g();
+				img[(width*q + p) * 3 + 2] = (char)cpixel.r();
 			}
 		}
 
